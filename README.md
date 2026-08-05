@@ -1,2 +1,2 @@
 # mascaramas
-Página del estudio de animaciópn @mas.cara.mas
+Página del estudio de animación @mas.cara.mas
