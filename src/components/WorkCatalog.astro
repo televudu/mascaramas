@@ -6,6 +6,7 @@ interface Props {
     title: string;
     slug: string;
     year: number;
+    category: string;
     images: string[];
     videos: string[];
     videoAspect: '16:9' | '4:3' | '1:1' | '9:16';
@@ -92,6 +93,7 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
               aria-label={`Mostrar ${project.title}, ${project.year}`}
             >
               <span class="work-catalog__year">{project.year}</span>
+              <span class="work-catalog__category">{project.category}</span>
               <span class="work-catalog__title">{project.title}</span>
             </button>
           ) : null}
@@ -146,7 +148,7 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
       data-catalog-divider
       data-index="0"
       role="separator"
-      aria-label="Ajustar columnas de año y título"
+      aria-label="Ajustar columnas de año y categoría"
       aria-orientation="vertical"
       tabindex="0"
     ></div>
@@ -154,6 +156,15 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
       class="work-catalog__divider"
       data-catalog-divider
       data-index="1"
+      role="separator"
+      aria-label="Ajustar columnas de categoría y título"
+      aria-orientation="vertical"
+      tabindex="0"
+    ></div>
+    <div
+      class="work-catalog__divider"
+      data-catalog-divider
+      data-index="2"
       role="separator"
       aria-label="Ajustar tabla y contenido"
       aria-orientation="vertical"
@@ -174,7 +185,7 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
     const dividers = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-divider]'));
     const projectButtons = Array.from(catalog.querySelectorAll<HTMLButtonElement>('[data-catalog-project]'));
     const projectDetails = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-detail]'));
-    const DEFAULT_FRACTIONS = [0.115, 0.273, 0.612];
+    const DEFAULT_FRACTIONS = [0.115, 0.11, 0.163, 0.612];
     const MIN_COLUMN = 20;
     let fractions = [...DEFAULT_FRACTIONS];
     let sizes: number[] = [];
@@ -216,11 +227,15 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
     const render = () => {
       if (!body || !list) return;
       const yearWidth = Math.round(sizes[0]);
-      const tableWidth = Math.round(sizes[0] + sizes[1]);
+      const categoryWidth = Math.round(sizes[1]);
+      const categoryEdge = Math.round(sizes[0] + sizes[1]);
+      const tableWidth = Math.round(sizes[0] + sizes[1] + sizes[2]);
       list.style.width = `${tableWidth}px`;
       list.style.setProperty('--catalog-year-width', `${yearWidth}px`);
+      list.style.setProperty('--catalog-category-width', `${categoryWidth}px`);
       dividers[0].style.left = `${yearWidth}px`;
-      dividers[1].style.left = `${tableWidth}px`;
+      dividers[1].style.left = `${categoryEdge}px`;
+      dividers[2].style.left = `${tableWidth}px`;
     };
 
     const fitToViewport = () => {

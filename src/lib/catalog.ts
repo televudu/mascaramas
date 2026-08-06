@@ -18,6 +18,7 @@ export async function getCatalogData() {
       title: project.data.title,
       slug: project.data.slug,
       year: project.data.year,
+      category: project.data.category,
       images: media.images,
       videos: [...new Set([project.data.video, ...project.data.videos].filter((video): video is string => Boolean(video)))],
       videoAspect: project.data.videoAspect,
