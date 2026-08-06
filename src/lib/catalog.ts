@@ -11,20 +11,18 @@ export async function getCatalogData() {
     throw new Error('No se encontro src/content/sitio/informacion.md');
   }
 
-  const projects = projectEntries.flatMap((project) => {
+  const projects = projectEntries.map((project) => {
     const media = getProjectMedia(project.data.slug, project.data.cover);
-    if (!media.cover) return [];
 
-    return [{
+    return {
       title: project.data.title,
       slug: project.data.slug,
       year: project.data.year,
-      cover: media.cover,
       images: media.images,
       videos: [...new Set([project.data.video, ...project.data.videos].filter((video): video is string => Boolean(video)))],
       videoAspect: project.data.videoAspect,
       synopsis: project.body ?? '',
-    }];
+    };
   });
 
   return { projects, information: informationEntry.data };
