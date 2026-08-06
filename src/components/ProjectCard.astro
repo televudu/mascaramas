@@ -1,0 +1,24 @@
+---
+import { withBase } from '../lib/paths';
+
+interface Props {
+  title: string;
+  year: number;
+  category: string;
+  cover: string;
+  slug: string;
+}
+
+const { title, year, category, cover, slug } = Astro.props;
+const projectUrl = withBase(`trabajos/${slug}/`);
+---
+
+<article class="project-card">
+  <a href={projectUrl} aria-label={`Ver proyecto ${title}`}>
+    <img src={withBase(cover)} alt={`Portada de ${title}`} loading="lazy" />
+    <div class="project-card__body">
+      <h2>{title}</h2>
+      <p>{year} · {category}</p>
+    </div>
+  </a>
+</article>

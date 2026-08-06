@@ -1,0 +1,111 @@
+media:
+  input: public/imagenes/proyectos
+  output: /imagenes/proyectos
+  rename: false
+  extensions: [avif, gif, jpeg, jpg, png, webp]
+
+content:
+  - name: proyectos
+    label: Proyectos
+    type: collection
+    path: src/content/proyectos
+    format: yaml-frontmatter
+    filename:
+      template: "{slug}.md"
+      field: false
+    view:
+      primary: title
+      fields: [title, year, category, visible]
+      sort: [order, year, title]
+      default:
+        sort: order
+        order: asc
+    fields:
+      - name: title
+        label: Título
+        type: string
+        required: true
+      - name: slug
+        label: Slug
+        type: string
+        required: true
+        pattern:
+          regex: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          message: "Usa minúsculas, números y guiones, por ejemplo ratonraton-3."
+      - name: year
+        label: Año
+        type: number
+        required: true
+      - name: category
+        label: Categoría
+        type: string
+        required: true
+      - name: video
+        label: Video
+        type: string
+        description: "URL completa de YouTube o Vimeo."
+      - name: videoAspect
+        label: Proporción del video
+        type: select
+        default: "16:9"
+        options:
+          values:
+            - name: "16:9"
+              label: "16:9"
+            - name: "4:3"
+              label: "4:3"
+            - name: "1:1"
+              label: "1:1"
+            - name: "9:16"
+              label: "9:16"
+      - name: credits
+        label: Créditos
+        type: string
+        list: true
+      - name: order
+        label: Orden
+        type: number
+        required: true
+        default: 0
+      - name: visible
+        label: Visible
+        type: boolean
+        required: true
+        default: true
+      - name: theme
+        label: Tema
+        type: select
+        required: true
+        default: light
+        options:
+          values:
+            - name: light
+              label: Claro
+            - name: dark
+              label: Oscuro
+      - name: body
+        label: Descripción
+        type: rich-text
+
+  - name: informacion
+    label: Información
+    type: file
+    path: src/content/sitio/informacion.md
+    format: yaml-frontmatter
+    fields:
+      - name: description
+        label: Descripción
+        type: text
+        required: true
+      - name: email
+        label: Correo
+        type: string
+        required: true
+      - name: youtube
+        label: YouTube
+        type: string
+        required: true
+      - name: instagram
+        label: Instagram
+        type: string
+        required: true

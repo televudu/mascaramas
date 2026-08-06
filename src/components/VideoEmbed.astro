@@ -1,0 +1,19 @@
+---
+interface Props {
+  url?: string;
+  title?: string;
+}
+
+const { url, title = 'Video' } = Astro.props;
+const isEmbed = url?.includes('player.vimeo.com') || url?.includes('youtube.com/embed');
+---
+
+{url && (
+  <section class="video-block" aria-label={title}>
+    {isEmbed ? (
+      <iframe src={url} title={title} loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen></iframe>
+    ) : (
+      <a class="video-link" href={url} target="_blank" rel="noreferrer">Ver video</a>
+    )}
+  </section>
+)}

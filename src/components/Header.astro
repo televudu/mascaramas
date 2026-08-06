@@ -1,0 +1,25 @@
+---
+import Menu from './Menu.astro';
+import { withBase } from '../lib/paths';
+
+interface Props {
+  variant?: 'compact' | 'home';
+}
+
+const { variant = 'compact' } = Astro.props;
+---
+
+<header class:list={['site-header', { 'site-header--home': variant === 'home' }]}>
+  <a class="site-name" href={withBase()} aria-label="Mascaramas, ir al inicio">
+    {variant === 'home' ? (
+      <span class="site-name__stack" aria-hidden="true">
+        <span>MAS</span>
+        <span>CARA</span>
+        <span>MAS</span>
+      </span>
+    ) : (
+      'MASCARAMAS'
+    )}
+  </a>
+  <Menu />
+</header>

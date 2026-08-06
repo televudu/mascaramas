@@ -1,0 +1,46 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { withBase } from '../lib/paths';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  theme?: 'light' | 'dark';
+  headerVariant?: 'compact' | 'home';
+  showHeader?: boolean;
+  showFooter?: boolean;
+  bodyClass?: string;
+}
+
+const {
+  title = 'mascaramas',
+  description = 'Portafolio de animacion y proyectos visuales.',
+  theme = 'light',
+  headerVariant = 'compact',
+  showHeader = true,
+  showFooter = true,
+  bodyClass,
+} = Astro.props;
+
+const pageTitle = title === 'mascaramas' ? title : `${title} | mascaramas`;
+---
+
+<!doctype html>
+<html lang="es" data-theme={theme}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href={withBase('favicon.svg')} />
+    <title>{pageTitle}</title>
+  </head>
+  <body class={bodyClass}>
+    {showHeader && <Header variant={headerVariant} />}
+    <main id="contenido">
+      <slot />
+    </main>
+    {showFooter && <Footer />}
+  </body>
+</html>

@@ -1,0 +1,538 @@
+---
+import { withBase } from '../lib/paths';
+
+interface Props {
+  view?: 'home' | 'information' | 'work' | 'project';
+  projects?: Array<{
+    title: string;
+    slug: string;
+    year: number;
+    category: string;
+    cover: string;
+  }>;
+  project?: {
+    title: string;
+    slug: string;
+    year: number;
+    category: string;
+    images: string[];
+    video?: string;
+    videoAspect: '16:9' | '4:3' | '1:1' | '9:16';
+    credits: string[];
+  };
+  information?: {
+    description: string;
+    email: string;
+    youtube: string;
+    instagram: string;
+  };
+}
+
+const {
+  view = 'home',
+  projects = [],
+  project,
+  information = {
+    description: '',
+    email: '',
+    youtube: '',
+    instagram: '',
+  },
+} = Astro.props;
+const columnCount = 5;
+const projectContentCount = (project?.images.length ?? 0) + 4;
+const rowCount =
+  view === 'work'
+    ? Math.max(4, 1 + Math.ceil(projects.length / columnCount))
+    : view === 'project'
+      ? Math.max(4, 1 + Math.ceil(projectContentCount / columnCount))
+      : 4;
+const cells = Array.from({ length: columnCount * rowCount }, (_, index) => index + 1);
+const corners = Array.from({ length: rowCount - 1 }, (_, row) =>
+  Array.from({ length: columnCount - 1 }, (_, column) => ({ row, column })),
+).flat();
+
+const getVideoEmbedUrl = (url?: string) => {
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtube.com')) {
+      const id = parsed.searchParams.get('v');
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?cc_load_policy=0` : undefined;
+    }
+    if (parsed.hostname === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '');
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?cc_load_policy=0` : undefined;
+    }
+    if (parsed.hostname.includes('vimeo.com')) {
+      const id = parsed.pathname.split('/').filter(Boolean).at(-1);
+      return id && /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : undefined;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
+const videoEmbedUrl = getVideoEmbedUrl(project?.video);
+const videoAspect =
+  {
+    '16:9': '16 / 9',
+    '4:3': '4 / 3',
+    '1:1': '1 / 1',
+    '9:16': '9 / 16',
+  }[project?.videoAspect ?? '16:9'];
+---
+
+<div class="grid-prototype" data-grid-prototype data-view={view} data-row-count={rowCount}>
+  <div class="grid-prototype__cells">
+    {cells.map((cell) => (
+      <div
+        class:list={['grid-prototype__cell', { 'grid-prototype__cell--fixed': [1, 4, 5].includes(cell) }]}
+        data-cell-index={cell}
+      >
+        {cell === 1 ? (
+          <a class="grid-prototype__logo" href={withBase()} data-logo-cell data-grid-navigation aria-label="Mascaramas, inicio">
+            <img
+              class="grid-prototype__logo-image grid-prototype__logo-image--vertical"
+              src={withBase('imagenes/logos/logo-vertical.svg')}
+              alt=""
+              aria-hidden="true"
+            />
+            <img
+              class="grid-prototype__logo-image grid-prototype__logo-image--horizontal"
+              src={withBase('imagenes/logos/logo-horizontal.svg')}
+              alt=""
+              aria-hidden="true"
+            />
+          </a>
+        ) : cell === 4 ? (
+          <a
+            href={withBase('trabajos/')}
+            data-grid-navigation
+            aria-current={view === 'work' || view === 'project' ? 'page' : undefined}
+          >
+            trabajo
+          </a>
+        ) : cell === 5 ? (
+          <a href={withBase('informacion/')} data-grid-navigation aria-current={view === 'information' ? 'page' : undefined}>
+            información
+          </a>
+        ) : view === 'information' && cell === 7 ? (
+          <p class="grid-information__item grid-information__bio" data-information-item="bio">
+            {information.description}
+          </p>
+        ) : view === 'information' && cell === 8 ? (
+          <a
+            class="grid-information__item grid-information__email"
+            data-information-item="email"
+            href={`mailto:${information.email}`}
+          >
+            {information.email}
+          </a>
+        ) : view === 'information' && cell === 9 ? (
+          <a
+            class="grid-information__item grid-information__social"
+            data-information-item="youtube"
+            href={information.youtube}
+            target="_blank"
+            rel="noreferrer"
+          >
+            youtube
+          </a>
+        ) : view === 'information' && cell === 10 ? (
+          <a
+            class="grid-information__item grid-information__social"
+            data-information-item="instagram"
+            href={information.instagram}
+            target="_blank"
+            rel="noreferrer"
+          >
+            instagram
+          </a>
+        ) : view === 'work' && cell >= 6 && projects[cell - 6] ? (
+          <a
+            class="grid-work__item"
+            data-work-item
+            data-grid-navigation
+            href={withBase(`trabajos/${projects[cell - 6].slug}/`)}
+            aria-label={`${projects[cell - 6].title}, ${projects[cell - 6].year}`}
+          >
+            <img src={withBase(projects[cell - 6].cover)} alt="" aria-hidden="true" />
+          </a>
+        ) : view === 'project' && project && cell === 6 ? (
+          <div class="grid-project__title">
+            <h1>{project.title}</h1>
+            <p>{project.year}</p>
+            <p>{project.category}</p>
+          </div>
+        ) : view === 'project' && project && cell === 7 ? (
+          <div class="grid-project__description"><slot name="description" /></div>
+        ) : view === 'project' && project && cell === 8 && videoEmbedUrl ? (
+          <div class="grid-project__video-frame" style={`--video-aspect: ${videoAspect};`}>
+            <iframe
+              class="grid-project__video"
+              src={videoEmbedUrl}
+              title={`Video de ${project.title}`}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+        ) : view === 'project' && project && cell === 9 && project.credits.length > 0 ? (
+          <ul class="grid-project__credits">
+            {project.credits.map((credit) => <li>{credit}</li>)}
+          </ul>
+        ) : view === 'project' && project && cell >= 10 && project.images[cell - 10] ? (
+          <img
+            class="grid-project__image"
+            data-project-media
+            src={withBase(project.images[cell - 10])}
+            alt={`${project.title}, imagen ${cell - 9}`}
+            loading="lazy"
+          />
+        ) : view === 'home' ? (
+          <span aria-label={`Celda ${cell}`}>{cell}</span>
+        ) : (
+          null
+        )}
+      </div>
+    ))}
+  </div>
+
+  {Array.from({ length: columnCount - 1 }, (_, index) => (
+    <div
+      class="grid-prototype__divider grid-prototype__divider--column"
+      data-grid-divider="column"
+      data-index={index}
+      role="separator"
+      aria-label={`Ajustar columnas ${index + 1} y ${index + 2}`}
+      aria-orientation="vertical"
+      tabindex="0"
+    ></div>
+  ))}
+
+  {Array.from({ length: rowCount - 1 }, (_, index) => (
+    <div
+      class="grid-prototype__divider grid-prototype__divider--row"
+      data-grid-divider="row"
+      data-index={index}
+      role="separator"
+      aria-label={`Ajustar filas ${index + 1} y ${index + 2}`}
+      aria-orientation="horizontal"
+      tabindex="0"
+    ></div>
+  ))}
+
+  {corners.map(({ row, column }) => (
+    <div
+      class="grid-prototype__corner"
+      data-grid-corner
+      data-column={column}
+      data-row={row}
+      aria-hidden="true"
+    ></div>
+  ))}
+
+  <button class="grid-prototype__reset" type="button" data-grid-reset aria-label="Restablecer retícula" title="Restablecer retícula">
+    ↺
+  </button>
+</div>
+
+<script>
+  const STANDARD_COLUMNS = [0.1125, 0.393125, 0.189375, 0.154375, 0.150625];
+  const PROJECT_COLUMNS = [0.11, 0.085, 0.495, 0.15, 0.16];
+  const MIN_COLUMN = 20;
+  const MIN_ROW = 20;
+
+  const grid = document.querySelector<HTMLElement>('[data-grid-prototype]');
+
+  if (grid) {
+    const DEFAULT_COLUMNS = grid.dataset.view === 'project' ? PROJECT_COLUMNS : STANDARD_COLUMNS;
+    const rowCount = Number(grid.dataset.rowCount ?? 4);
+    const DEFAULT_ROWS =
+      grid.dataset.view === 'project'
+        ? [0.09, 0.44, ...Array.from({ length: rowCount - 2 }, () => 0.47 / (rowCount - 2))]
+        : rowCount === 4
+        ? [0.08856, 0.31505, 0.27821, 0.31818]
+        : [0.08856, ...Array.from({ length: rowCount - 1 }, () => 0.91144 / (rowCount - 1))];
+    const cellLayer = grid.querySelector<HTMLElement>('.grid-prototype__cells');
+    const columnDividers = Array.from(grid.querySelectorAll<HTMLElement>('[data-grid-divider="column"]'));
+    const rowDividers = Array.from(grid.querySelectorAll<HTMLElement>('[data-grid-divider="row"]'));
+    const cornerHandles = Array.from(grid.querySelectorAll<HTMLElement>('[data-grid-corner]'));
+    const logoCell = grid.querySelector<HTMLElement>('[data-logo-cell]');
+    const resetButton = grid.querySelector<HTMLButtonElement>('[data-grid-reset]');
+
+    let columnFractions = [...DEFAULT_COLUMNS];
+    let rowFractions = [...DEFAULT_ROWS];
+    let columnSizes: number[] = [];
+    let rowSizes: number[] = [];
+    let resizeFrame = 0;
+
+    const randomizeFractions = (fractions: number[], variation = 0.12) => {
+      const randomized = fractions.map((value) => value * (1 - variation + Math.random() * variation * 2));
+      const total = randomized.reduce((sum, value) => sum + value, 0);
+      return randomized.map((value) => value / total);
+    };
+
+    const sizesFromFractions = (fractions: number[], total: number, minimum: number) => {
+      const sizes = new Array(fractions.length).fill(0);
+      const remaining = new Set(fractions.map((_, index) => index));
+      let remainingTotal = total;
+      let remainingWeight = fractions.reduce((sum, value) => sum + value, 0);
+
+      let changed = true;
+      while (changed && remaining.size > 0) {
+        changed = false;
+        for (const index of [...remaining]) {
+          const proposed = (fractions[index] / remainingWeight) * remainingTotal;
+          if (proposed < minimum) {
+            sizes[index] = minimum;
+            remaining.delete(index);
+            remainingTotal -= minimum;
+            remainingWeight -= fractions[index];
+            changed = true;
+          }
+        }
+      }
+
+      for (const index of remaining) {
+        sizes[index] = (fractions[index] / remainingWeight) * remainingTotal;
+      }
+
+      return sizes;
+    };
+
+    const updateFractions = () => {
+      const columnTotal = columnSizes.reduce((sum, value) => sum + value, 0);
+      const rowTotal = rowSizes.reduce((sum, value) => sum + value, 0);
+      columnFractions = columnSizes.map((value) => value / columnTotal);
+      rowFractions = rowSizes.map((value) => value / rowTotal);
+    };
+
+    const renderGrid = () => {
+      if (!cellLayer) return;
+
+      const width = columnSizes.reduce((sum, value) => sum + value, 0);
+      const height = rowSizes.reduce((sum, value) => sum + value, 0);
+      grid.style.width = `${width}px`;
+      grid.style.height = `${height}px`;
+      cellLayer.style.gridTemplateColumns = columnSizes.map((value) => `${value}px`).join(' ');
+      cellLayer.style.gridTemplateRows = rowSizes.map((value) => `${value}px`).join(' ');
+
+      let columnPosition = 0;
+      const columnPositions: number[] = [];
+      columnDividers.forEach((divider, index) => {
+        columnPosition += columnSizes[index];
+        columnPositions.push(columnPosition);
+        divider.style.left = `${columnPosition}px`;
+        divider.setAttribute('aria-valuenow', `${Math.round(columnPosition)}`);
+      });
+
+      let rowPosition = 0;
+      const rowPositions: number[] = [];
+      rowDividers.forEach((divider, index) => {
+        rowPosition += rowSizes[index];
+        rowPositions.push(rowPosition);
+        divider.style.top = `${rowPosition}px`;
+        divider.setAttribute('aria-valuenow', `${Math.round(rowPosition)}`);
+      });
+
+      cornerHandles.forEach((corner) => {
+        corner.style.left = `${columnPositions[Number(corner.dataset.column)]}px`;
+        corner.style.top = `${rowPositions[Number(corner.dataset.row)]}px`;
+      });
+    };
+
+    const fitToViewport = () => {
+      const width = Math.max(window.innerWidth, MIN_COLUMN * DEFAULT_COLUMNS.length);
+      const height = Math.max(window.innerHeight, MIN_ROW * DEFAULT_ROWS.length);
+      columnSizes = sizesFromFractions(columnFractions, width, MIN_COLUMN);
+      rowSizes = sizesFromFractions(rowFractions, height, MIN_ROW);
+      renderGrid();
+    };
+
+    const resizePair = (axis: 'column' | 'row', index: number, delta: number) => {
+      const sizes = axis === 'column' ? columnSizes : rowSizes;
+      const minimum = axis === 'column' ? MIN_COLUMN : MIN_ROW;
+      const constrainedDelta = Math.max(minimum - sizes[index], Math.min(delta, sizes[index + 1] - minimum));
+      sizes[index] += constrainedDelta;
+      sizes[index + 1] -= constrainedDelta;
+      updateFractions();
+      renderGrid();
+    };
+
+    const attachDivider = (divider: HTMLElement, axis: 'column' | 'row') => {
+      const index = Number(divider.dataset.index);
+
+      divider.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        divider.setPointerCapture(event.pointerId);
+        document.body.classList.add('is-resizing-grid');
+        const start = axis === 'column' ? event.clientX : event.clientY;
+        const initialFirst = (axis === 'column' ? columnSizes : rowSizes)[index];
+        const initialSecond = (axis === 'column' ? columnSizes : rowSizes)[index + 1];
+
+        const move = (moveEvent: PointerEvent) => {
+          const current = axis === 'column' ? moveEvent.clientX : moveEvent.clientY;
+          const sizes = axis === 'column' ? columnSizes : rowSizes;
+          const minimum = axis === 'column' ? MIN_COLUMN : MIN_ROW;
+          const delta = current - start;
+          const constrainedDelta = Math.max(minimum - initialFirst, Math.min(delta, initialSecond - minimum));
+          sizes[index] = initialFirst + constrainedDelta;
+          sizes[index + 1] = initialSecond - constrainedDelta;
+          updateFractions();
+          renderGrid();
+        };
+
+        const finish = () => {
+          divider.removeEventListener('pointermove', move);
+          divider.removeEventListener('pointerup', finish);
+          divider.removeEventListener('pointercancel', finish);
+          document.body.classList.remove('is-resizing-grid');
+        };
+
+        divider.addEventListener('pointermove', move);
+        divider.addEventListener('pointerup', finish);
+        divider.addEventListener('pointercancel', finish);
+      });
+
+      divider.addEventListener('keydown', (event) => {
+        const step = event.shiftKey ? 1 : 10;
+        const direction =
+          axis === 'column'
+            ? event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
+            : event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+
+        if (direction !== 0) {
+          event.preventDefault();
+          resizePair(axis, index, direction);
+        }
+      });
+    };
+
+    const attachCorner = (corner: HTMLElement) => {
+      const columnIndex = Number(corner.dataset.column);
+      const rowIndex = Number(corner.dataset.row);
+
+      corner.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        corner.setPointerCapture(event.pointerId);
+        document.body.classList.add('is-resizing-grid');
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const initialColumns = [columnSizes[columnIndex], columnSizes[columnIndex + 1]];
+        const initialRows = [rowSizes[rowIndex], rowSizes[rowIndex + 1]];
+
+        const move = (moveEvent: PointerEvent) => {
+          const columnDelta = Math.max(
+            MIN_COLUMN - initialColumns[0],
+            Math.min(moveEvent.clientX - startX, initialColumns[1] - MIN_COLUMN),
+          );
+          const rowDelta = Math.max(
+            MIN_ROW - initialRows[0],
+            Math.min(moveEvent.clientY - startY, initialRows[1] - MIN_ROW),
+          );
+
+          columnSizes[columnIndex] = initialColumns[0] + columnDelta;
+          columnSizes[columnIndex + 1] = initialColumns[1] - columnDelta;
+          rowSizes[rowIndex] = initialRows[0] + rowDelta;
+          rowSizes[rowIndex + 1] = initialRows[1] - rowDelta;
+          updateFractions();
+          renderGrid();
+        };
+
+        const finish = () => {
+          corner.removeEventListener('pointermove', move);
+          corner.removeEventListener('pointerup', finish);
+          corner.removeEventListener('pointercancel', finish);
+          document.body.classList.remove('is-resizing-grid');
+        };
+
+        corner.addEventListener('pointermove', move);
+        corner.addEventListener('pointerup', finish);
+        corner.addEventListener('pointercancel', finish);
+      });
+    };
+
+    const targetColumns = randomizeFractions(DEFAULT_COLUMNS);
+    const targetRows = randomizeFractions(DEFAULT_ROWS);
+
+    columnFractions = [...DEFAULT_COLUMNS];
+    rowFractions = [...DEFAULT_ROWS];
+    fitToViewport();
+    grid.classList.add('is-arriving');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        columnFractions = targetColumns;
+        rowFractions = targetRows;
+        fitToViewport();
+        window.setTimeout(() => grid.classList.remove('is-arriving'), 870);
+      });
+    });
+    columnDividers.forEach((divider) => attachDivider(divider, 'column'));
+    rowDividers.forEach((divider) => attachDivider(divider, 'row'));
+    cornerHandles.forEach(attachCorner);
+
+    const workItems = Array.from(grid.querySelectorAll<HTMLElement>('[data-work-item]'));
+    if (workItems.length > 0) {
+      const availableCells = Array.from(grid.querySelectorAll<HTMLElement>('[data-cell-index]')).filter(
+        (cell) => Number(cell.dataset.cellIndex) > 5,
+      );
+
+      for (let index = availableCells.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [availableCells[index], availableCells[randomIndex]] = [availableCells[randomIndex], availableCells[index]];
+      }
+
+      workItems.forEach((item, index) => availableCells[index]?.append(item));
+      grid.classList.add('is-work-placed');
+    }
+
+    const projectMedia = Array.from(grid.querySelectorAll<HTMLElement>('[data-project-media]'));
+    if (projectMedia.length > 0) {
+      const availableCells = Array.from(grid.querySelectorAll<HTMLElement>('[data-cell-index]')).filter(
+        (cell) =>
+          Number(cell.dataset.cellIndex) > 5 &&
+          !cell.querySelector(
+            '.grid-project__title, .grid-project__description, .grid-project__video-frame, .grid-project__credits',
+          ),
+      );
+
+      for (let index = availableCells.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [availableCells[index], availableCells[randomIndex]] = [availableCells[randomIndex], availableCells[index]];
+      }
+
+      projectMedia.forEach((item, index) => availableCells[index]?.append(item));
+      grid.classList.add('is-project-placed');
+    }
+
+    if (logoCell) {
+      const updateLogoVariant = () => {
+        const { width, height } = logoCell.getBoundingClientRect();
+        logoCell.classList.toggle('is-horizontal', width > height);
+      };
+      const logoObserver = new ResizeObserver(updateLogoVariant);
+      logoObserver.observe(logoCell);
+      updateLogoVariant();
+    }
+
+    resetButton?.addEventListener('click', () => {
+      grid.classList.add('is-resetting');
+      columnFractions = [...DEFAULT_COLUMNS];
+      rowFractions = [...DEFAULT_ROWS];
+      requestAnimationFrame(() => {
+        fitToViewport();
+        window.setTimeout(() => grid.classList.remove('is-resetting'), 870);
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(fitToViewport);
+    });
+  }
+</script>
