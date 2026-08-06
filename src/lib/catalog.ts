@@ -15,7 +15,7 @@ export async function getCatalogData() {
   }
 
   const projects = projectEntries.map((project) => {
-    const media = getProjectMedia(project.data.slug, project.data.cover, project.data.sequence?.prefix);
+    const media = getProjectMedia(project.data.slug, project.data.cover);
 
     return {
       title: project.data.title,
@@ -23,9 +23,6 @@ export async function getCatalogData() {
       year: project.data.year,
       category: project.data.category,
       images: media.images,
-      sequence: project.data.sequence && media.sequenceFrames.length > 0
-        ? { ...project.data.sequence, frames: media.sequenceFrames }
-        : undefined,
       videos: [...new Set([project.data.video, ...project.data.videos].filter((video): video is string => Boolean(video)))],
       videoAspect: project.data.videoAspect,
       synopsisHtml: project.rendered?.html ?? '',

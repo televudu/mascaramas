@@ -13,11 +13,6 @@ const proyectos = defineCollection({
     video: z.string().optional(),
     videos: z.array(z.string()).default([]),
     videoAspect: z.enum(['16:9', '4:3', '1:1', '9:16']).default('16:9'),
-    sequence: z.object({
-      prefix: z.string(),
-      fps: z.number().positive().default(12),
-      duration: z.number().positive().default(4),
-    }).optional(),
     gallery: z.array(z.string()).default([]),
     credits: z.array(z.string()).default([]),
     order: z.number().default(0),

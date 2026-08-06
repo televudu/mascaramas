@@ -49,7 +49,6 @@ button:focus-visible {
 .work-catalog {
   --catalog-header-height: 52px;
   --catalog-row-height: 106px;
-  --catalog-table-width: 38.8vw;
   position: fixed;
   inset: 0;
   min-width: 60px;
@@ -164,18 +163,6 @@ button:focus-visible {
 .work-catalog__detail[hidden],
 .work-catalog__information-detail[hidden] {
   display: none;
-}
-
-.work-catalog__sequence {
-  position: fixed;
-  top: var(--catalog-header-height);
-  right: 0;
-  left: var(--catalog-table-width);
-  z-index: 6;
-  display: block;
-  width: calc(100vw - var(--catalog-table-width));
-  height: calc(100vh - var(--catalog-header-height));
-  pointer-events: none;
 }
 
 .work-catalog__media {

@@ -8,7 +8,7 @@ videos: []
 videoAspect: "16:9"
 credits: []
 order: 3
-visible: true
+visible: false
 theme: "light"
 ---
 

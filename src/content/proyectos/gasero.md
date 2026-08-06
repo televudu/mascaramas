@@ -6,10 +6,6 @@ category: "colaboración"
 video: "https://youtu.be/J1giBiNTFZk"
 videos: []
 videoAspect: "4:3"
-sequence:
-  prefix: "gasero-"
-  fps: 12
-  duration: 4
 credits: []
 order: 3
 visible: true

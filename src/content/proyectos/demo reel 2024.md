@@ -5,7 +5,7 @@ year: 2024
 category: "dirección"
 video: "https://www.youtube.com/watch?v=dcvxdndiFeQ"
 videos: []
-videoAspect: "4:3"
+videoAspect: "16:9"
 credits: []
 order: 3
 visible: true
