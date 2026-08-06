@@ -8,9 +8,14 @@ interface Props {
     year: number;
     category: string;
     images: string[];
+    sequence?: {
+      frames: string[];
+      fps: number;
+      duration: number;
+    };
     videos: string[];
     videoAspect: '16:9' | '4:3' | '1:1' | '9:16';
-    synopsis: string;
+    synopsisHtml: string;
   }>;
   information: {
     description: string;
@@ -64,7 +69,12 @@ const rowCount = Math.max(4, catalogProjects.length);
 const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[index]);
 ---
 
-<div class="work-catalog" data-work-catalog>
+<div
+  class="work-catalog"
+  data-work-catalog
+  data-initial-view={initialView}
+  data-initial-project-index={initialProjectIndex}
+>
   <header class="work-catalog__header">
     <a class="work-catalog__logo" href={withBase()} aria-label="Mascaramas, inicio">
       <img src={withBase('imagenes/logos/logo-horizontal.svg')} alt="" aria-hidden="true" />
@@ -109,8 +119,24 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
           data-project-index={projectIndex}
           hidden={initialView !== 'project' || projectIndex !== initialProjectIndex}
         >
+          {project.sequence ? (
+            <canvas
+              class="work-catalog__sequence"
+              data-catalog-sequence
+              data-project-index={projectIndex}
+              data-sequence-frames={JSON.stringify(project.sequence.frames.map(withBase))}
+              data-sequence-fps={project.sequence.fps}
+              data-sequence-duration={project.sequence.duration}
+              aria-hidden="true"
+            ></canvas>
+          ) : null}
           {project.embeds.map((embed, videoIndex) => (
-              <div class="work-catalog__media">
+              <div
+                class:list={[
+                  'work-catalog__media',
+                  videoIndex === project.embeds.length - 1 && 'work-catalog__media--before-synopsis',
+                ]}
+              >
                 <div
                   class="work-catalog__video-frame"
                   style={`--catalog-video-aspect: ${videoAspects[project.videoAspect]};`}
@@ -125,14 +151,12 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
                 </div>
               </div>
             ))}
+          <div class="work-catalog__synopsis" set:html={project.synopsisHtml}></div>
           {project.images.map((image) => (
             <div class="work-catalog__media">
               <img src={withBase(image)} alt="" aria-hidden="true" loading="lazy" />
             </div>
           ))}
-          <div class="work-catalog__synopsis">
-            <p>{project.synopsis}</p>
-          </div>
         </section>
       ))}
       <section class="work-catalog__information-detail" data-catalog-information-detail hidden={initialView !== 'information'}>
@@ -185,6 +209,8 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
     const dividers = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-divider]'));
     const projectButtons = Array.from(catalog.querySelectorAll<HTMLButtonElement>('[data-catalog-project]'));
     const projectDetails = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-detail]'));
+    const synopsisLinks = Array.from(catalog.querySelectorAll<HTMLAnchorElement>('.work-catalog__synopsis a'));
+    const sequenceCanvases = Array.from(catalog.querySelectorAll<HTMLCanvasElement>('[data-catalog-sequence]'));
     const DEFAULT_FRACTIONS = [0.115, 0.11, 0.163, 0.612];
     const MIN_COLUMN = 20;
     let fractions = [...DEFAULT_FRACTIONS];
@@ -233,6 +259,7 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
       list.style.width = `${tableWidth}px`;
       list.style.setProperty('--catalog-year-width', `${yearWidth}px`);
       list.style.setProperty('--catalog-category-width', `${categoryWidth}px`);
+      catalog.style.setProperty('--catalog-table-width', `${tableWidth}px`);
       dividers[0].style.left = `${yearWidth}px`;
       dividers[1].style.left = `${categoryEdge}px`;
       dividers[2].style.left = `${tableWidth}px`;
@@ -298,6 +325,89 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
       });
     });
 
+    const sequenceControllers = sequenceCanvases.map((canvas) => {
+      const context = canvas.getContext('2d');
+      const frameUrls = JSON.parse(canvas.dataset.sequenceFrames ?? '[]') as string[];
+      const fps = Number(canvas.dataset.sequenceFps) || 12;
+      const duration = (Number(canvas.dataset.sequenceDuration) || 4) * 1000;
+      const images = frameUrls.map((src) => {
+        const image = new Image();
+        image.src = src;
+        return image;
+      });
+      const loaded = Promise.all(images.map((image) => (
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              image.addEventListener('load', () => resolve(), { once: true });
+              image.addEventListener('error', () => resolve(), { once: true });
+            })
+      )));
+      let animationFrame = 0;
+      let run = 0;
+
+      const clear = () => {
+        if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+      };
+
+      const stop = () => {
+        run += 1;
+        cancelAnimationFrame(animationFrame);
+        clear();
+      };
+
+      const start = async () => {
+        stop();
+        const currentRun = run;
+        await loaded;
+        if (currentRun !== run || !context || images.length === 0) return;
+
+        const startTime = performance.now();
+        const draw = (time: number) => {
+          if (currentRun !== run) return;
+          const bounds = canvas.getBoundingClientRect();
+          const scale = Math.min(window.devicePixelRatio || 1, 2);
+          const width = Math.max(1, Math.round(bounds.width * scale));
+          const height = Math.max(1, Math.round(bounds.height * scale));
+          if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+          }
+
+          const elapsed = time - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const frame = images[Math.floor(elapsed / (1000 / fps)) % images.length];
+          context.clearRect(0, 0, width, height);
+
+          if (frame.naturalWidth > 0) {
+            const frameAspect = frame.naturalWidth / frame.naturalHeight;
+            const drawHeight = Math.min(height * 0.72, width * 0.55 / frameAspect);
+            const drawWidth = drawHeight * frameAspect;
+            const x = width + drawWidth * 0.08 - progress * (width + drawWidth * 1.16);
+            const y = (height - drawHeight) / 2;
+            context.drawImage(frame, x, y, drawWidth, drawHeight);
+          }
+
+          if (progress < 1) {
+            animationFrame = requestAnimationFrame(draw);
+          } else {
+            clear();
+          }
+        };
+
+        animationFrame = requestAnimationFrame(draw);
+      };
+
+      return { projectIndex: Number(canvas.dataset.projectIndex), start, stop };
+    });
+
+    const playSequence = (index?: number) => {
+      sequenceControllers.forEach((controller) => {
+        if (controller.projectIndex === index) controller.start();
+        else controller.stop();
+      });
+    };
+
     const selectProject = (index: number) => {
       projectButtons.forEach((button) => button.setAttribute('aria-pressed', `${Number(button.dataset.projectIndex) === index}`));
       informationButton?.setAttribute('aria-pressed', 'false');
@@ -306,7 +416,13 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
         detail.hidden = Number(detail.dataset.projectIndex) !== index;
       });
       if (details) details.scrollTop = 0;
+      playSequence(index);
     };
+
+    synopsisLinks.forEach((link) => {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    });
 
     projectButtons.forEach((button) => {
       button.addEventListener('click', () => selectProject(Number(button.dataset.projectIndex)));
@@ -320,9 +436,13 @@ const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[inde
       informationButton.setAttribute('aria-pressed', 'true');
       if (informationDetail) informationDetail.hidden = false;
       if (details) details.scrollTop = 0;
+      playSequence();
     });
 
     fitToViewport();
+    if (catalog.dataset.initialView === 'project') {
+      playSequence(Number(catalog.dataset.initialProjectIndex));
+    }
     window.addEventListener('resize', () => {
       cancelAnimationFrame(resizeFrame);
       resizeFrame = requestAnimationFrame(fitToViewport);

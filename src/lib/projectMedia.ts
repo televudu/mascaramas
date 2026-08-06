@@ -5,7 +5,7 @@ const IMAGE_EXTENSIONS = new Set(['.avif', '.gif', '.jpeg', '.jpg', '.png', '.sv
 const PLACEHOLDER_PATTERN = /^(?:portada|galeria-\d+)\.svg$/i;
 const COVER_PATTERN = /(?:^|-)0\.[^.]+$/i;
 
-export function getProjectMedia(slug: string, fallbackCover?: string) {
+export function getProjectMedia(slug: string, fallbackCover?: string, sequencePrefix?: string) {
   const directory = join(process.cwd(), 'public', 'imagenes', 'proyectos', slug);
   let files: string[] = [];
 
@@ -23,6 +23,10 @@ export function getProjectMedia(slug: string, fallbackCover?: string) {
     : files;
   const toPublicPath = (file: string) =>
     `/imagenes/proyectos/${encodeURIComponent(slug)}/${encodeURIComponent(file)}`;
+  const sequenceFiles = sequencePrefix
+    ? displayFiles.filter((file) => file.toLocaleLowerCase('es').startsWith(sequencePrefix.toLocaleLowerCase('es')))
+    : [];
+  const imageFiles = displayFiles.filter((file) => !sequenceFiles.includes(file));
   const coverFile =
     displayFiles.find((file) => COVER_PATTERN.test(file)) ??
     displayFiles.find((file) => /^portada\./i.test(file)) ??
@@ -30,6 +34,7 @@ export function getProjectMedia(slug: string, fallbackCover?: string) {
 
   return {
     cover: coverFile ? toPublicPath(coverFile) : fallbackCover,
-    images: displayFiles.map(toPublicPath),
+    images: imageFiles.map(toPublicPath),
+    sequenceFrames: sequenceFiles.map(toPublicPath),
   };
 }
