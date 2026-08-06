@@ -1,6 +1,4 @@
 ---
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
 import { withBase } from '../lib/paths';
 import '../styles/global.css';
 
@@ -8,9 +6,6 @@ interface Props {
   title?: string;
   description?: string;
   theme?: 'light' | 'dark';
-  headerVariant?: 'compact' | 'home';
-  showHeader?: boolean;
-  showFooter?: boolean;
   bodyClass?: string;
 }
 
@@ -18,9 +13,6 @@ const {
   title = 'mascaramas',
   description = 'Portafolio de animacion y proyectos visuales.',
   theme = 'light',
-  headerVariant = 'compact',
-  showHeader = true,
-  showFooter = true,
   bodyClass,
 } = Astro.props;
 
@@ -37,10 +29,8 @@ const pageTitle = title === 'mascaramas' ? title : `${title} | mascaramas`;
     <title>{pageTitle}</title>
   </head>
   <body class={bodyClass}>
-    {showHeader && <Header variant={headerVariant} />}
     <main id="contenido">
       <slot />
     </main>
-    {showFooter && <Footer />}
   </body>
 </html>

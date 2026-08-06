@@ -1,15 +1,11 @@
 ---
-import { getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import AdjustableGrid from '../components/AdjustableGrid.astro';
+import WorkCatalog from '../components/WorkCatalog.astro';
+import { getCatalogData } from '../lib/catalog';
 
-const information = await getEntry('sitio', 'informacion');
-
-if (!information) {
-  throw new Error('No se encontro src/content/sitio/informacion.md');
-}
+const { projects, information } = await getCatalogData();
 ---
 
-<BaseLayout title="Información" showHeader={false} showFooter={false} bodyClass="grid-prototype-page">
-  <AdjustableGrid view="information" information={information.data} />
+<BaseLayout title="Información" bodyClass="catalog-page">
+  <WorkCatalog projects={projects} information={information} initialView="information" />
 </BaseLayout>

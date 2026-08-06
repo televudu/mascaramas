@@ -1,0 +1,317 @@
+---
+import { withBase } from '../lib/paths';
+
+interface Props {
+  projects: Array<{
+    title: string;
+    slug: string;
+    year: number;
+    cover: string;
+    images: string[];
+    videos: string[];
+    videoAspect: '16:9' | '4:3' | '1:1' | '9:16';
+    synopsis: string;
+  }>;
+  information: {
+    description: string;
+    email: string;
+    youtube: string;
+    instagram: string;
+  };
+  initialView?: 'project' | 'information';
+  initialProjectSlug?: string;
+}
+
+const getVideoEmbedUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtube.com')) {
+      const id = parsed.searchParams.get('v');
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?cc_load_policy=0` : undefined;
+    }
+    if (parsed.hostname === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '');
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?cc_load_policy=0` : undefined;
+    }
+    if (parsed.hostname.includes('vimeo.com')) {
+      const id = parsed.pathname.split('/').filter(Boolean).at(-1);
+      return id && /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : undefined;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
+const videoAspects = {
+  '16:9': '16 / 9',
+  '4:3': '4 / 3',
+  '1:1': '1 / 1',
+  '9:16': '9 / 16',
+};
+
+const { projects, information, initialView = 'project', initialProjectSlug } = Astro.props;
+const catalogProjects = projects.map((project) => ({
+  ...project,
+  embeds: project.videos.map(getVideoEmbedUrl).filter((url): url is string => Boolean(url)),
+}));
+const initialProjectIndex = Math.max(
+  0,
+  initialProjectSlug ? catalogProjects.findIndex((project) => project.slug === initialProjectSlug) : 0,
+);
+const rowCount = Math.max(4, catalogProjects.length);
+const rows = Array.from({ length: rowCount }, (_, index) => catalogProjects[index]);
+---
+
+<div class="work-catalog" data-work-catalog>
+  <header class="work-catalog__header">
+    <a class="work-catalog__logo" href={withBase()} aria-label="Mascaramas, inicio">
+      <img src={withBase('imagenes/logos/logo-horizontal.svg')} alt="" aria-hidden="true" />
+    </a>
+    <button
+      class="work-catalog__information"
+      type="button"
+      data-catalog-information-button
+      aria-pressed={initialView === 'information' ? 'true' : 'false'}
+    >
+      información
+    </button>
+  </header>
+
+  <div class="work-catalog__body" data-work-catalog-body>
+    <div class="work-catalog__list" data-work-catalog-list>
+      {rows.map((project, index) => (
+        <div class="work-catalog__row">
+          {project ? (
+            <button
+              class="work-catalog__project"
+              type="button"
+              data-catalog-project
+              data-project-index={index}
+              aria-pressed={initialView === 'project' && index === initialProjectIndex ? 'true' : 'false'}
+              aria-label={`Mostrar ${project.title}, ${project.year}`}
+            >
+              <span class="work-catalog__year">{project.year}</span>
+              <span class="work-catalog__title">{project.title}</span>
+            </button>
+          ) : null}
+        </div>
+      ))}
+    </div>
+
+    <div class="work-catalog__details" data-catalog-details aria-live="polite">
+      {catalogProjects.map((project, projectIndex) => (
+        <section
+          class="work-catalog__detail"
+          data-catalog-detail
+          data-project-index={projectIndex}
+          hidden={initialView !== 'project' || projectIndex !== initialProjectIndex}
+        >
+          {project.embeds.map((embed, videoIndex) => (
+              <div class="work-catalog__media">
+                <div
+                  class="work-catalog__video-frame"
+                  style={`--catalog-video-aspect: ${videoAspects[project.videoAspect]};`}
+                >
+                  <iframe
+                    src={embed}
+                    title={`${project.title}, video ${videoIndex + 1}`}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+            ))}
+          {project.images.map((image) => (
+            <div class="work-catalog__media">
+              <img src={withBase(image)} alt="" aria-hidden="true" loading="lazy" />
+            </div>
+          ))}
+          <div class="work-catalog__synopsis">
+            <p>{project.synopsis}</p>
+          </div>
+        </section>
+      ))}
+      <section class="work-catalog__information-detail" data-catalog-information-detail hidden={initialView !== 'information'}>
+        <p>{information.description}</p>
+        <a href={`mailto:${information.email}`}>{information.email}</a>
+        <a href={information.youtube} target="_blank" rel="noreferrer">youtube</a>
+        <a href={information.instagram} target="_blank" rel="noreferrer">instagram</a>
+      </section>
+    </div>
+
+    <div
+      class="work-catalog__divider"
+      data-catalog-divider
+      data-index="0"
+      role="separator"
+      aria-label="Ajustar columnas de año y título"
+      aria-orientation="vertical"
+      tabindex="0"
+    ></div>
+    <div
+      class="work-catalog__divider"
+      data-catalog-divider
+      data-index="1"
+      role="separator"
+      aria-label="Ajustar tabla y contenido"
+      aria-orientation="vertical"
+      tabindex="0"
+    ></div>
+  </div>
+</div>
+
+<script>
+  const catalog = document.querySelector<HTMLElement>('[data-work-catalog]');
+
+  if (catalog) {
+    const body = catalog.querySelector<HTMLElement>('[data-work-catalog-body]');
+    const list = catalog.querySelector<HTMLElement>('[data-work-catalog-list]');
+    const details = catalog.querySelector<HTMLElement>('[data-catalog-details]');
+    const informationButton = catalog.querySelector<HTMLButtonElement>('[data-catalog-information-button]');
+    const informationDetail = catalog.querySelector<HTMLElement>('[data-catalog-information-detail]');
+    const dividers = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-divider]'));
+    const projectButtons = Array.from(catalog.querySelectorAll<HTMLButtonElement>('[data-catalog-project]'));
+    const projectDetails = Array.from(catalog.querySelectorAll<HTMLElement>('[data-catalog-detail]'));
+    const DEFAULT_FRACTIONS = [0.115, 0.273, 0.612];
+    const MIN_COLUMN = 20;
+    let fractions = [...DEFAULT_FRACTIONS];
+    let sizes: number[] = [];
+    let resizeFrame = 0;
+
+    const sizesFromFractions = (total: number) => {
+      const nextSizes = new Array(fractions.length).fill(0);
+      const remaining = new Set(fractions.map((_, index) => index));
+      let remainingTotal = total;
+      let remainingWeight = fractions.reduce((sum, value) => sum + value, 0);
+      let changed = true;
+
+      while (changed && remaining.size > 0) {
+        changed = false;
+        for (const index of [...remaining]) {
+          const proposed = (fractions[index] / remainingWeight) * remainingTotal;
+          if (proposed < MIN_COLUMN) {
+            nextSizes[index] = MIN_COLUMN;
+            remaining.delete(index);
+            remainingTotal -= MIN_COLUMN;
+            remainingWeight -= fractions[index];
+            changed = true;
+          }
+        }
+      }
+
+      for (const index of remaining) {
+        nextSizes[index] = (fractions[index] / remainingWeight) * remainingTotal;
+      }
+
+      return nextSizes;
+    };
+
+    const updateFractions = () => {
+      const total = sizes.reduce((sum, value) => sum + value, 0);
+      fractions = sizes.map((value) => value / total);
+    };
+
+    const render = () => {
+      if (!body || !list) return;
+      const yearWidth = Math.round(sizes[0]);
+      const tableWidth = Math.round(sizes[0] + sizes[1]);
+      list.style.width = `${tableWidth}px`;
+      list.style.setProperty('--catalog-year-width', `${yearWidth}px`);
+      dividers[0].style.left = `${yearWidth}px`;
+      dividers[1].style.left = `${tableWidth}px`;
+    };
+
+    const fitToViewport = () => {
+      sizes = sizesFromFractions(Math.max(window.innerWidth, MIN_COLUMN * fractions.length));
+      render();
+    };
+
+    const resizePair = (index: number, delta: number) => {
+      const constrainedDelta = Math.max(MIN_COLUMN - sizes[index], Math.min(delta, sizes[index + 1] - MIN_COLUMN));
+      sizes[index] += constrainedDelta;
+      sizes[index + 1] -= constrainedDelta;
+      updateFractions();
+      render();
+    };
+
+    dividers.forEach((divider) => {
+      const index = Number(divider.dataset.index);
+
+      divider.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        divider.setPointerCapture(event.pointerId);
+        document.body.classList.add('is-resizing-catalog');
+        const start = event.clientX;
+        const initialFirst = sizes[index];
+        const initialSecond = sizes[index + 1];
+
+        const move = (moveEvent: PointerEvent) => {
+          const delta = moveEvent.clientX - start;
+          const constrainedDelta = Math.max(MIN_COLUMN - initialFirst, Math.min(delta, initialSecond - MIN_COLUMN));
+          sizes[index] = initialFirst + constrainedDelta;
+          sizes[index + 1] = initialSecond - constrainedDelta;
+          updateFractions();
+          render();
+        };
+
+        const finish = () => {
+          divider.removeEventListener('pointermove', move);
+          divider.removeEventListener('pointerup', finish);
+          divider.removeEventListener('pointercancel', finish);
+          document.body.classList.remove('is-resizing-catalog');
+        };
+
+        divider.addEventListener('pointermove', move);
+        divider.addEventListener('pointerup', finish);
+        divider.addEventListener('pointercancel', finish);
+      });
+
+      divider.addEventListener('keydown', (event) => {
+        const step = event.shiftKey ? 1 : 10;
+        const delta = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+        if (delta !== 0) {
+          event.preventDefault();
+          resizePair(index, delta);
+        }
+      });
+
+      divider.addEventListener('dblclick', () => {
+        fractions = [...DEFAULT_FRACTIONS];
+        fitToViewport();
+      });
+    });
+
+    const selectProject = (index: number) => {
+      projectButtons.forEach((button) => button.setAttribute('aria-pressed', `${Number(button.dataset.projectIndex) === index}`));
+      informationButton?.setAttribute('aria-pressed', 'false');
+      if (informationDetail) informationDetail.hidden = true;
+      projectDetails.forEach((detail) => {
+        detail.hidden = Number(detail.dataset.projectIndex) !== index;
+      });
+      if (details) details.scrollTop = 0;
+    };
+
+    projectButtons.forEach((button) => {
+      button.addEventListener('click', () => selectProject(Number(button.dataset.projectIndex)));
+    });
+
+    informationButton?.addEventListener('click', () => {
+      projectButtons.forEach((button) => button.setAttribute('aria-pressed', 'false'));
+      projectDetails.forEach((detail) => {
+        detail.hidden = true;
+      });
+      informationButton.setAttribute('aria-pressed', 'true');
+      if (informationDetail) informationDetail.hidden = false;
+      if (details) details.scrollTop = 0;
+    });
+
+    fitToViewport();
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(fitToViewport);
+    });
+  }
+</script>

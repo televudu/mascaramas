@@ -41,9 +41,14 @@ content:
         type: string
         required: true
       - name: video
-        label: Video
+        label: Video principal
         type: string
         description: "URL completa de YouTube o Vimeo."
+      - name: videos
+        label: Videos adicionales
+        type: string
+        list: true
+        description: "URLs completas de YouTube o Vimeo, en el orden en que deben aparecer."
       - name: videoAspect
         label: Proporción del video
         type: select

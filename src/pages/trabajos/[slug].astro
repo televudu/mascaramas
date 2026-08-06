@@ -1,38 +1,18 @@
 ---
-import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import AdjustableGrid from '../../components/AdjustableGrid.astro';
-import { getProjectMedia } from '../../lib/projectMedia';
+import WorkCatalog from '../../components/WorkCatalog.astro';
+import { getCatalogData } from '../../lib/catalog';
 
 export async function getStaticPaths() {
-  const proyectos = await getCollection('proyectos');
-  return proyectos
-    .filter((project) => project.data.visible)
-    .map((project) => ({
-      params: { slug: project.data.slug },
-      props: { project },
-    }));
+  const { projects } = await getCatalogData();
+  return projects.map((project) => ({ params: { slug: project.slug } }));
 }
 
-const { project } = Astro.props;
-const { Content } = await render(project);
-const media = getProjectMedia(project.data.slug, project.data.cover);
+const { projects, information } = await getCatalogData();
+const { slug } = Astro.params;
+const project = projects.find((entry) => entry.slug === slug);
 ---
 
-<BaseLayout title={project.data.title} showHeader={false} showFooter={false} bodyClass="grid-prototype-page">
-  <AdjustableGrid
-    view="project"
-    project={{
-      title: project.data.title,
-      slug: project.data.slug,
-      year: project.data.year,
-      category: project.data.category,
-      images: media.images,
-      video: project.data.video,
-      videoAspect: project.data.videoAspect,
-      credits: project.data.credits,
-    }}
-  >
-    <div slot="description"><Content /></div>
-  </AdjustableGrid>
+<BaseLayout title={project?.title ?? 'Trabajo'} bodyClass="catalog-page">
+  <WorkCatalog projects={projects} information={information} initialProjectSlug={slug} />
 </BaseLayout>

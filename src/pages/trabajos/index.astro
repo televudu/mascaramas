@@ -1,32 +1,11 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import AdjustableGrid from '../../components/AdjustableGrid.astro';
-import { getProjectMedia } from '../../lib/projectMedia';
+import WorkCatalog from '../../components/WorkCatalog.astro';
+import { getCatalogData } from '../../lib/catalog';
 
-const proyectos = (await getCollection('proyectos'))
-  .filter((project) => project.data.visible)
-  .sort((a, b) => a.data.order - b.data.order);
-
-const projectCards = proyectos
-  .map((project) => {
-    const media = getProjectMedia(project.data.slug, project.data.cover);
-    return media.cover
-      ? {
-          title: project.data.title,
-          slug: project.data.slug,
-          year: project.data.year,
-          category: project.data.category,
-          cover: media.cover,
-        }
-      : null;
-  })
-  .filter((project) => project !== null);
+const { projects, information } = await getCatalogData();
 ---
 
-<BaseLayout title="Trabajos" showHeader={false} showFooter={false} bodyClass="grid-prototype-page">
-  <AdjustableGrid
-    view="work"
-    projects={projectCards}
-  />
+<BaseLayout title="Trabajos" bodyClass="catalog-page">
+  <WorkCatalog projects={projects} information={information} />
 </BaseLayout>
